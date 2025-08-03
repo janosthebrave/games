@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Ultimate Tic-Tac-Toe</title>
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e0f2f7; /* Light blue background */
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            overflow-x: hidden; /* Prevent horizontal scroll on small screens */
+        }
+
+        /* Game Container */
+        .game-container {
+            background-color: #ffffff;
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            padding: 2rem;
+            margin: 1rem;
+            max-width: 95%; /* Allow more width for larger board */
+            width: 700px; /* Increased width for ultimate board */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Game Title */
+        h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #0d47a1; /* Dark blue */
+            margin-bottom: 1rem;
+        }
+
+        /* Status Messages */
+        #status-message, #game-info {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #1a237e; /* Indigo */
+            min-height: 1.5em; /* Prevent layout shift */
+        }
+
+        #game-id-display, #user-id-display {
+            font-size: 0.9rem;
+            color: #555;
+            word-break: break-all; /* Allow long IDs to wrap */
+        }
+
+        /* Ultimate Tic-Tac-Toe Board (Big Board) */
+        .big-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 12px; /* Gap between mini-boards */
+            width: 100%;
+            max-width: 600px; /* Max width for the entire game board */
+            margin: 0 auto;
+            background-color: #90caf9; /* Medium blue background for the big board */
+            border-radius: 1rem;
+            padding: 12px;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
+            position: relative; /* For winner overlay */
+        }
+
+        /* Mini Board Container */
+        .mini-board-container {
+            background-color: #bbdefb; /* Light blue mini-board background */
+            border-radius: 0.75rem;
+            padding: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden; /* Hide overflow for winner overlay */
+            border: 2px solid transparent; /* Default border */
+        }
+
+        /* Active Mini Board Highlight */
+        .mini-board-container.active-board {
+            border-color: #ffc107; /* Amber for active board */
+            box-shadow: 0 0 0 4px #ffc107, 0 2px 5px rgba(0, 0, 0, 0.2); /* Outer glow */
+        }
+
+        /* Mini Board Grid */
+        .mini-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 4px; /* Gap between cells within a mini-board */
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Individual Cells */
+        .cell {
+            background-color: #e3f2fd; /* Lighter blue cell background */
+            border-radius: 0.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem; /* Smaller X/O for mini-boards */
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            color: #0d47a1; /* Default color for X/O */
+            user-select: none; /* Prevent text selection */
+            aspect-ratio: 1 / 1; /* Ensure cells are square */
+        }
+
+        .cell:hover:not(.occupied):not(.board-won) {
+            background-color: #c5e1fd; /* Hover effect */
+            transform: scale(1.05);
+        }
+
+        .cell.occupied {
+            cursor: not-allowed;
+        }
+
+        /* Player X and O colors */
+        .cell.X {
+            color: #ef5350; /* Red for X */
+        }
+
+        .cell.O {
+            color: #42a5f5; /* Blue for O */
+        }
+
+        /* Mini-board winner overlay */
+        .mini-board-winner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6rem; /* Large X/O for winner */
+            font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
+            border-radius: 0.75rem;
+            z-index: 10;
+            pointer-events: none; /* Allow clicks to pass through */
+        }
+
+        .mini-board-winner-overlay.X {
+            color: rgba(239, 83, 80, 0.7); /* Semi-transparent red */
+        }
+
+        .mini-board-winner-overlay.O {
+            color: rgba(66, 165, 245, 0.7); /* Semi-transparent blue */
+        }
+
+        .mini-board-winner-overlay.draw {
+            color: rgba(150, 150, 150, 0.7); /* Semi-transparent grey for draw */
+            font-size: 4rem;
+        }
+
+        /* Overall Game Winner Overlay */
+        .overall-winner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            color: white;
+            font-size: 4rem;
+            font-weight: bold;
+            border-radius: 1rem;
+            pointer-events: none; /* Allow clicks to pass through */
+        }
+
+        .overall-winner-overlay.X {
+            color: #ef5350; /* Red for X */
+        }
+
+        .overall-winner-overlay.O {
+            color: #42a5f5; /* Blue for O */
+        }
+
+        .overall-winner-overlay.draw {
+            color: #bdbdbd; /* Grey for draw */
+            font-size: 3rem;
+        }
+
+        /* Control Buttons */
+        .controls {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            background: linear-gradient(to right, #42a5f5, #1976d2); /* Blue gradient */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.1s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            background: linear-gradient(to right, #1976d2, #0d47a1); /* Darker blue on hover */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            background: #bdbdbd; /* Grey when disabled */
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+            text-shadow: none;
+        }
+
+        /* Join Game Section */
+        .join-game-section {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        .join-game-section input[type="text"] {
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            width: calc(100% - 2rem); /* Account for padding */
+            max-width: 250px;
+            box-sizing: border-box;
+        }
+
+        /* Loading Indicator */
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+            display: none; /* Hidden by default */
+        }
+
+        .loading-spinner.active {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom Message Box */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .message-box-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .message-box-content {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+        }
+
+        .message-box-content h3 {
+            margin-top: 0;
+            color: #0d47a1;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .message-box-content p {
+            margin-bottom: 1.5rem;
+            color: #555;
+            font-size: 1rem;
+        }
+
+        .message-box-content button {
+            background-color: #42a5f5;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .message-box-content button:hover {
+            background-color: #1976d2;
+        }
+
+        .shareable-link {
+            word-break: break-all;
+            background-color: #f0f0f0;
+            padding: 0.5rem;
+            border-radius: 0.3rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #007bff;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Ultimate Tic-Tac-Toe Online</h1>
+        <div id="status-message">Initializing...</div>
+        <div id="game-info"></div>
+        <div id="user-id-display">Your User ID: Loading...</div>
+        <div id="game-id-display">Game ID: None</div>
+
+        <div class="big-board" id="game-board">
+            <!-- Mini-boards and cells will be dynamically generated by JavaScript -->
+        </div>
+
+        <div class="controls">
+            <button id="create-game-btn" class="btn">Create New Game</button>
+            <button id="reset-game-btn" class="btn" disabled>Reset Game</button>
+        </div>
+
+        <div class="join-game-section">
+            <input type="text" id="game-id-input" placeholder="Enter Game ID to join">
+            <button id="join-game-btn" class="btn">Join Game</button>
+        </div>
+
+        <div class="loading-spinner" id="loading-spinner"></div>
+    </div>
+
+    <!-- Custom Message Box HTML -->
+    <div class="message-box-overlay" id="message-box-overlay">
+        <div class="message-box-content">
+            <h3 id="message-box-title"></h3>
+            <p id="message-box-text"></p>
+            <div id="shareable-link-container" style="display: none;">
+                <p>Share this link:</p>
+                <a href="#" id="shareable-link" class="shareable-link" target="_blank"></a>
+            </div>
+            <button id="message-box-ok-btn">OK</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Firebase App and Services
+        let app;
+        let db;
+        let auth;
+        let userId = null;
+        let currentGameId = null;
+        let unsubscribeFromGame = null; // To store the unsubscribe function for real-time updates
+
+        // Game State for Ultimate Tic-Tac-Toe
+        // board is a 3x3 array of 3x3 arrays, representing the mini-boards
+        let board = Array(9).fill(null).map(() => Array(9).fill(''));
+        // miniBoardWinners tracks the winner of each 3x3 mini-board ('X', 'O', 'draw', or '')
+        let miniBoardWinners = Array(9).fill('');
+        let currentPlayer = 'X';
+        // activeBoardIndex indicates which mini-board the current player MUST play in (0-8), or null if any board is allowed
+        let activeBoardIndex = null;
+        // overallGameWinner tracks the winner of the entire Ultimate Tic-Tac-Toe game ('X', 'O', 'draw', or '')
+        let overallGameWinner = '';
+        let gameStatus = 'initializing'; // 'waiting', 'playing', 'X_wins', 'O_wins', 'draw'
+        let playerSymbol = null; // 'X' or 'O' for the current user in the game
+        let playersInGame = {}; // { userId1: 'X', userId2: 'O' }
+
+        // DOM Elements
+        const statusMessageEl = document.getElementById('status-message');
+        const gameInfoEl = document.getElementById('game-info');
+        const userIdDisplayEl = document.getElementById('user-id-display');
+        const gameIdDisplayEl = document.getElementById('game-id-display');
+        const gameBoardEl = document.getElementById('game-board');
+        const createGameBtn = document.getElementById('create-game-btn');
+        const resetGameBtn = document.getElementById('reset-game-btn');
+        const joinGameInput = document.getElementById('game-id-input');
+        const joinGameBtn = document.getElementById('join-game-btn');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        // Message Box Elements
+        const messageBoxOverlay = document.getElementById('message-box-overlay');
+        const messageBoxTitle = document.getElementById('message-box-title');
+        const messageBoxText = document.getElementById('message-box-text');
+        const messageBoxOkBtn = document.getElementById('message-box-ok-btn');
+        const shareableLinkContainer = document.getElementById('shareable-link-container');
+        const shareableLinkEl = document.getElementById('shareable-link');
+
+        /**
+         * Displays a custom message box.
+         * @param {string} title - The title of the message box.
+         * @param {string} message - The message to display.
+         * @param {string|null} shareLink - Optional shareable URL to display.
+         */
+        function showMessageBox(title, message, shareLink = null) {
+            messageBoxTitle.textContent = title;
+            messageBoxText.textContent = message;
+            if (shareLink) {
+                shareableLinkEl.href = shareLink;
+                shareableLinkEl.textContent = shareLink;
+                shareableLinkContainer.style.display = 'block';
+            } else {
+                shareableLinkContainer.style.display = 'none';
+                shareableLinkEl.href = '#';
+                shareableLinkEl.textContent = '';
+            }
+            messageBoxOverlay.classList.add('visible');
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            messageBoxOverlay.classList.remove('visible');
+        }
+
+        // Event listener for the message box OK button
+        messageBoxOkBtn.addEventListener('click', hideMessageBox);
+
+        /**
+         * Shows or hides the loading spinner.
+         * @param {boolean} show - True to show, false to hide.
+         */
+        function toggleLoading(show) {
+            if (show) {
+                loadingSpinner.classList.add('active');
+            } else {
+                loadingSpinner.classList.remove('active');
+            }
+        }
+
+        /**
+         * Initializes Firebase and authenticates the user.
+         */
+        async function initializeFirebase() {
+            try {
+                toggleLoading(true);
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Sign in with custom token if available, otherwise anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Listen for auth state changes to get the user ID
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplayEl.textContent = `Your User ID: ${userId}`;
+                        statusMessageEl.textContent = 'Ready to play!';
+                        console.log("User authenticated:", userId);
+                        // After successful authentication, check for gameId in URL
+                        checkUrlForGameId();
+                    } else {
+                        userId = null;
+                        userIdDisplayEl.textContent = 'Your User ID: Not authenticated';
+                        statusMessageEl.textContent = 'Authentication failed.';
+                        console.error("User not authenticated.");
+                    }
+                    toggleLoading(false);
+                });
+
+            } catch (error) {
+                console.error("Error initializing Firebase or authenticating:", error);
+                statusMessageEl.textContent = 'Error initializing game.';
+                showMessageBox('Error', `Failed to initialize Firebase: ${error.message}`);
+                toggleLoading(false);
+            }
+        }
+
+        /**
+         * Checks the URL for a 'gameId' query parameter and attempts to join the game.
+         */
+        function checkUrlForGameId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const gameIdFromUrl = urlParams.get('gameId');
+            if (gameIdFromUrl && !currentGameId) {
+                // If a gameId is found in the URL and we're not already in a game, attempt to join
+                joinGameInput.value = gameIdFromUrl; // Pre-fill the input
+                joinGame(gameIdFromUrl);
+            }
+        }
+
+        /**
+         * Renders the Ultimate Tic-Tac-Toe board based on the current game state.
+         */
+        function renderBoard() {
+            gameBoardEl.innerHTML = ''; // Clear existing mini-boards
+
+            // Add overall winner overlay if game is over
+            if (overallGameWinner) {
+                const overlay = document.createElement('div');
+                overlay.classList.add('overall-winner-overlay', overallGameWinner);
+                overlay.textContent = overallGameWinner === 'draw' ? 'DRAW!' : `${overallGameWinner} WINS!`;
+                gameBoardEl.appendChild(overlay);
+            }
+
+            board.forEach((miniBoard, miniBoardIndex) => {
+                const miniBoardContainer = document.createElement('div');
+                miniBoardContainer.classList.add('mini-board-container');
+                miniBoardContainer.dataset.miniBoardIndex = miniBoardIndex;
+
+                // Highlight active mini-board
+                if (activeBoardIndex === null || activeBoardIndex === miniBoardIndex) {
+                    // Only highlight if the board is not already won or drawn
+                    if (miniBoardWinners[miniBoardIndex] === '') {
+                        miniBoardContainer.classList.add('active-board');
+                    }
+                }
+
+                // Add mini-board winner overlay
+                if (miniBoardWinners[miniBoardIndex] !== '') {
+                    const overlay = document.createElement('div');
+                    overlay.classList.add('mini-board-winner-overlay', miniBoardWinners[miniBoardIndex]);
+                    overlay.textContent = miniBoardWinners[miniBoardIndex] === 'draw' ? 'DRAW' : miniBoardWinners[miniBoardIndex];
+                    miniBoardContainer.appendChild(overlay);
+                }
+
+                const miniBoardDiv = document.createElement('div');
+                miniBoardDiv.classList.add('mini-board');
+
+                miniBoard.forEach((cell, cellIndex) => {
+                    const cellDiv = document.createElement('div');
+                    cellDiv.classList.add('cell');
+                    cellDiv.dataset.miniBoardIndex = miniBoardIndex;
+                    cellDiv.dataset.cellIndex = cellIndex;
+                    cellDiv.textContent = cell;
+
+                    if (cell !== '') {
+                        cellDiv.classList.add('occupied', cell);
+                    }
+                    // If the mini-board is already won/drawn, cells are not clickable
+                    if (miniBoardWinners[miniBoardIndex] !== '') {
+                        cellDiv.classList.add('occupied', 'board-won'); // Add a class to visually indicate won board
+                    } else {
+                        cellDiv.addEventListener('click', handleCellClick);
+                    }
+                    miniBoardDiv.appendChild(cellDiv);
+                });
+
+                miniBoardContainer.appendChild(miniBoardDiv);
+                gameBoardEl.appendChild(miniBoardContainer);
+            });
+        }
+
+        /**
+         * Updates the game status message and button states.
+         */
+        function updateUI() {
+            renderBoard();
+            gameIdDisplayEl.textContent = `Game ID: ${currentGameId || 'None'}`;
+            let infoText = '';
+            if (playerSymbol) {
+                infoText += `You are Player ${playerSymbol}. `;
+            }
+            if (playersInGame.X && playersInGame.O) {
+                infoText += `Players: X (${playersInGame.X.substring(0, 5)}...) vs O (${playersInGame.O.substring(0, 5)}...).`;
+            } else if (playersInGame.X) {
+                infoText += `Waiting for Player O...`;
+            }
+            gameInfoEl.textContent = infoText;
+
+            if (overallGameWinner) {
+                statusMessageEl.textContent = overallGameWinner === 'draw' ? 'Overall Game: DRAW!' : `Overall Game: Player ${overallGameWinner} wins!`;
+            } else {
+                switch (gameStatus) {
+                    case 'initializing':
+                        statusMessageEl.textContent = 'Initializing game...';
+                        break;
+                    case 'waiting':
+                        statusMessageEl.textContent = 'Waiting for another player to join...';
+                        break;
+                    case 'playing':
+                        let activeBoardMessage = '';
+                        if (activeBoardIndex !== null) {
+                            activeBoardMessage = ` (in board ${activeBoardIndex + 1})`;
+                        } else {
+                            activeBoardMessage = ` (in any available board)`;
+                        }
+                        statusMessageEl.textContent = `Player ${currentPlayer}'s turn${activeBoardMessage}`;
+                        break;
+                    default:
+                        statusMessageEl.textContent = 'Game state unknown.';
+                }
+            }
+
+            // Enable/disable buttons based on game state and user's role
+            createGameBtn.disabled = currentGameId !== null;
+            joinGameBtn.disabled = currentGameId !== null;
+            joinGameInput.disabled = currentGameId !== null;
+            resetGameBtn.disabled = currentGameId === null || overallGameWinner === '';
+        }
+
+        /**
+         * Checks for a win condition on a single 3x3 mini-board.
+         * @param {Array<string>} currentMiniBoard - The current state of a 3x3 mini-board.
+         * @returns {string|null} 'X', 'O' if a player wins, otherwise null.
+         */
+        function checkMiniBoardWin(currentMiniBoard) {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+                [0, 4, 8], [2, 4, 6]             // Diagonals
+            ];
+
+            for (const pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (currentMiniBoard[a] && currentMiniBoard[a] === currentMiniBoard[b] && currentMiniBoard[a] === currentMiniBoard[c]) {
+                    return currentMiniBoard[a]; // Returns 'X' or 'O'
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Checks for a draw condition on a single 3x3 mini-board.
+         * @param {Array<string>} currentMiniBoard - The current state of a 3x3 mini-board.
+         * @returns {boolean} True if it's a draw, false otherwise.
+         */
+        function checkMiniBoardDraw(currentMiniBoard) {
+            return !checkMiniBoardWin(currentMiniBoard) && currentMiniBoard.every(cell => cell !== '');
+        }
+
+        /**
+         * Checks for a win condition on the overall 3x3 big board using miniBoardWinners.
+         * @param {Array<string>} winnersArray - The array of mini-board winners.
+         * @returns {string|null} 'X', 'O' if a player wins the overall game, otherwise null.
+         */
+        function checkOverallWin(winnersArray) {
+            return checkMiniBoardWin(winnersArray); // Re-use the same logic for overall win
+        }
+
+        /**
+         * Checks for a draw condition on the overall game.
+         * @param {Array<string>} winnersArray - The array of mini-board winners.
+         * @returns {boolean} True if it's an overall draw, false otherwise.
+         */
+        function checkOverallDraw(winnersArray) {
+            return !checkOverallWin(winnersArray) && winnersArray.every(winner => winner !== '');
+        }
+
+        /**
+         * Handles a cell click event.
+         * @param {Event} event - The click event.
+         */
+        async function handleCellClick(event) {
+            if (!userId) {
+                showMessageBox('Error', 'User not authenticated. Please wait or refresh.');
+                return;
+            }
+            if (!currentGameId) {
+                showMessageBox('No Game', 'Please create or join a game first.');
+                return;
+            }
+            if (gameStatus !== 'playing') {
+                showMessageBox('Game Not Active', 'Game is not in playing state.');
+                return;
+            }
+            if (currentPlayer !== playerSymbol) {
+                showMessageBox('Not Your Turn', `It's Player ${currentPlayer}'s turn.`);
+                return;
+            }
+            if (overallGameWinner !== '') {
+                showMessageBox('Game Over', 'The game has already ended.');
+                return;
+            }
+
+            const miniBoardIndex = parseInt(event.target.dataset.miniBoardIndex);
+            const cellIndex = parseInt(event.target.dataset.cellIndex);
+
+            // Check if it's the correct mini-board to play in
+            if (activeBoardIndex !== null && activeBoardIndex !== miniBoardIndex) {
+                showMessageBox('Invalid Move', `You must play in board ${activeBoardIndex + 1}.`);
+                return;
+            }
+
+            // Check if the mini-board is already won or drawn
+            if (miniBoardWinners[miniBoardIndex] !== '') {
+                showMessageBox('Invalid Move', 'This board is already won or drawn. You must choose an empty board.');
+                return;
+            }
+
+            if (board[miniBoardIndex][cellIndex] === '') {
+                const newBoard = JSON.parse(JSON.stringify(board)); // Deep copy
+                const newMiniBoardWinners = [...miniBoardWinners]; // Shallow copy
+
+                newBoard[miniBoardIndex][cellIndex] = playerSymbol;
+
+                // Check for mini-board win/draw after the move
+                const miniWinner = checkMiniBoardWin(newBoard[miniBoardIndex]);
+                const miniDraw = checkMiniBoardDraw(newBoard[miniBoardIndex]);
+
+                if (miniWinner) {
+                    newMiniBoardWinners[miniBoardIndex] = miniWinner;
+                } else if (miniDraw) {
+                    newMiniBoardWinners[miniBoardIndex] = 'draw';
+                }
+
+                // Determine the next active board
+                let nextActiveBoardIndex = cellIndex; // Next player must play in the board corresponding to the cell just played
+                // If the target mini-board is already won or drawn, the next player can play anywhere
+                if (newMiniBoardWinners[nextActiveBoardIndex] !== '') {
+                    nextActiveBoardIndex = null; // Any board is allowed
+                }
+
+                // Check for overall game win/draw
+                const overallWinner = checkOverallWin(newMiniBoardWinners);
+                const overallDraw = checkOverallDraw(newMiniBoardWinners);
+
+                let nextPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                let newGameStatus = 'playing';
+                let newOverallGameWinner = '';
+
+                if (overallWinner) {
+                    newGameStatus = `${overallWinner}_wins`;
+                    newOverallGameWinner = overallWinner;
+                } else if (overallDraw) {
+                    newGameStatus = 'draw';
+                    newOverallGameWinner = 'draw';
+                }
+
+                try {
+                    toggleLoading(true);
+                    const gameDocRef = doc(db, `artifacts/${appId}/public/data/games`, currentGameId);
+                    await updateDoc(gameDocRef, {
+                        board: JSON.stringify(newBoard), // Serialize the board
+                        miniBoardWinners: newMiniBoardWinners,
+                        currentPlayer: nextPlayer,
+                        activeBoardIndex: nextActiveBoardIndex,
+                        overallGameWinner: newOverallGameWinner,
+                        status: newGameStatus,
+                        lastMoveTime: new Date().toISOString()
+                    });
+                    console.log("Move updated in Firestore.");
+                } catch (error) {
+                    console.error("Error updating board:", error);
+                    showMessageBox('Error', `Failed to make move: ${error.message}`);
+                } finally {
+                    toggleLoading(false);
+                }
+            } else {
+                showMessageBox('Invalid Move', 'This cell is already occupied.');
+            }
+        }
+
+        /**
+         * Creates a new Ultimate Tic-Tac-Toe game in Firestore.
+         */
+        async function createNewGame() {
+            if (!userId) {
+                showMessageBox('Error', 'User not authenticated. Please wait or refresh.');
+                return;
+            }
+            if (currentGameId) {
+                showMessageBox('Game Active', 'You are already in a game. Reset or join another.');
+                return;
+            }
+
+            try {
+                toggleLoading(true);
+                const gamesCollectionRef = collection(db, `artifacts/${appId}/public/data/games`);
+                const newGameDocRef = doc(gamesCollectionRef); // Let Firestore generate an ID
+                const newGameId = newGameDocRef.id;
+
+                const initialGameState = {
+                    board: JSON.stringify(Array(9).fill(null).map(() => Array(9).fill(''))), // Serialize the board
+                    miniBoardWinners: Array(9).fill(''), // No mini-board winners initially
+                    currentPlayer: 'X',
+                    activeBoardIndex: null, // Start with any board allowed
+                    overallGameWinner: '',
+                    status: 'waiting', // Game starts in waiting state
+                    hostId: userId,
+                    players: {
+                        X: userId // Creator is Player X
+                    },
+                    createdAt: new Date().toISOString(),
+                    lastMoveTime: new Date().toISOString()
+                };
+
+                await setDoc(newGameDocRef, initialGameState);
+                currentGameId = newGameId;
+                playerSymbol = 'X'; // Assign current user as X
+                console.log("New game created with ID:", newGameId);
+
+                // Construct the shareable URL
+                const shareableUrl = `${window.location.origin}${window.location.pathname}?gameId=${newGameId}`;
+                showMessageBox('Game Created!', `Share this Game ID with a friend: \n${newGameId}`, shareableUrl);
+                listenToGameChanges(newGameId); // Start listening to changes
+            } catch (error) {
+                console.error("Error creating new game:", error);
+                showMessageBox('Error', `Failed to create game: ${error.message}`);
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        /**
+         * Joins an existing Ultimate Tic-Tac-Toe game.
+         * @param {string} gameIdToJoin - The ID of the game to join.
+         */
+        async function joinGame(gameIdToJoin) {
+            if (!userId) {
+                showMessageBox('Error', 'User not authenticated. Please wait or refresh.');
+                return;
+            }
+            if (currentGameId) {
+                showMessageBox('Game Active', 'You are already in a game. Reset or join another.');
+                return;
+            }
+            if (!gameIdToJoin) {
+                showMessageBox('Invalid ID', 'Please enter a Game ID.');
+                return;
+            }
+
+            try {
+                toggleLoading(true);
+                const gameDocRef = doc(db, `artifacts/${appId}/public/data/games`, gameIdToJoin);
+                const gameSnap = await getDoc(gameDocRef);
+
+                if (!gameSnap.exists()) {
+                    showMessageBox('Game Not Found', 'No game found with that ID.');
+                    toggleLoading(false);
+                    return;
+                }
+
+                const gameData = gameSnap.data();
+
+                // Check if already 2 players
+                if (Object.keys(gameData.players).length >= 2) {
+                    // If the current user is already one of the players, allow them to rejoin
+                    if (gameData.players.X === userId || gameData.players.O === userId) {
+                        showMessageBox('Rejoining Game', 'You are already a player in this game.');
+                        currentGameId = gameIdToJoin;
+                        playerSymbol = gameData.players.X === userId ? 'X' : 'O';
+                        listenToGameChanges(gameIdToJoin);
+                        toggleLoading(false);
+                        return;
+                    } else {
+                        showMessageBox('Game Full', 'This game already has two players.');
+                        toggleLoading(false);
+                        return;
+                    }
+                }
+
+                // Assign player O if X is already taken
+                let assignedSymbol = null;
+                if (!gameData.players.X) {
+                    assignedSymbol = 'X';
+                } else if (!gameData.players.O) {
+                    assignedSymbol = 'O';
+                } else {
+                    // This case should ideally not happen if length check above is correct
+                    showMessageBox('Error', 'Could not assign a player symbol.');
+                    toggleLoading(false);
+                    return;
+                }
+
+                const updatedPlayers = { ...gameData.players, [assignedSymbol]: userId };
+                let newStatus = gameData.status;
+                if (Object.keys(updatedPlayers).length === 2) {
+                    newStatus = 'playing'; // Start game if two players are present
+                }
+
+                await updateDoc(gameDocRef, {
+                    players: updatedPlayers,
+                    status: newStatus,
+                    lastMoveTime: new Date().toISOString()
+                });
+
+                currentGameId = gameIdToJoin;
+                playerSymbol = assignedSymbol;
+                console.log(`Joined game ${gameIdToJoin} as Player ${assignedSymbol}`);
+                showMessageBox('Game Joined!', `You have joined the game as Player ${assignedSymbol}.`);
+                listenToGameChanges(gameIdToJoin); // Start listening to changes
+            } catch (error) {
+                console.error("Error joining game:", error);
+                showMessageBox('Error', `Failed to join game: ${error.message}`);
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        /**
+         * Resets the current game board and status in Firestore.
+         */
+        async function resetGame() {
+            if (!currentGameId) {
+                showMessageBox('No Game', 'No active game to reset.');
+                return;
+            }
+
+            try {
+                toggleLoading(true);
+                const gameDocRef = doc(db, `artifacts/${appId}/public/data/games`, currentGameId);
+                await updateDoc(gameDocRef, {
+                    board: JSON.stringify(Array(9).fill(null).map(() => Array(9).fill(''))), // Serialize the board
+                    miniBoardWinners: Array(9).fill(''),
+                    currentPlayer: 'X',
+                    activeBoardIndex: null,
+                    overallGameWinner: '',
+                    status: 'playing', // Reset to playing
+                    lastMoveTime: new Date().toISOString()
+                });
+                console.log("Game reset successfully.");
+            } catch (error) {
+                console.error("Error resetting game:", error);
+                showMessageBox('Error', `Failed to reset game: ${error.message}`);
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        /**
+         * Sets up a real-time listener for the current game document.
+         * @param {string} gameId - The ID of the game to listen to.
+         */
+        function listenToGameChanges(gameId) {
+            // Unsubscribe from previous listener if any
+            if (unsubscribeFromGame) {
+                unsubscribeFromGame();
+            }
+
+            const gameDocRef = doc(db, `artifacts/${appId}/public/data/games`, gameId);
+            unsubscribeFromGame = onSnapshot(gameDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    board = JSON.parse(data.board); // Parse the board back
+                    miniBoardWinners = data.miniBoardWinners;
+                    currentPlayer = data.currentPlayer;
+                    activeBoardIndex = data.activeBoardIndex;
+                    overallGameWinner = data.overallGameWinner;
+                    gameStatus = data.status;
+                    playersInGame = data.players || {};
+
+                    // If the user's symbol isn't set yet but they are in playersInGame, set it
+                    if (!playerSymbol && (playersInGame.X === userId || playersInGame.O === userId)) {
+                        playerSymbol = playersInGame.X === userId ? 'X' : 'O';
+                    }
+
+                    updateUI();
+                } else {
+                    // Game document no longer exists (e.g., deleted by host)
+                    showMessageBox('Game Ended', 'The current game has ended or been deleted.');
+                    resetGameStateLocally();
+                }
+            }, (error) => {
+                console.error("Error listening to game changes:", error);
+                showMessageBox('Error', `Real-time updates failed: ${error.message}`);
+                resetGameStateLocally();
+            });
+        }
+
+        /**
+         * Resets local game state variables.
+         */
+        function resetGameStateLocally() {
+            if (unsubscribeFromGame) {
+                unsubscribeFromGame();
+                unsubscribeFromGame = null;
+            }
+            currentGameId = null;
+            board = Array(9).fill(null).map(() => Array(9).fill(''));
+            miniBoardWinners = Array(9).fill('');
+            currentPlayer = 'X';
+            activeBoardIndex = null;
+            overallGameWinner = '';
+            gameStatus = 'initializing';
+            playerSymbol = null;
+            playersInGame = {};
+            updateUI();
+        }
+
+        // Event Listeners for Buttons
+        createGameBtn.addEventListener('click', createNewGame);
+        resetGameBtn.addEventListener('click', resetGame);
+        joinGameBtn.addEventListener('click', () => {
+            const id = joinGameInput.value.trim();
+            if (id) {
+                joinGame(id);
+            } else {
+                showMessageBox('Input Needed', 'Please enter a Game ID to join.');
+            }
+        });
+
+        // Initialize Firebase when the window loads
+        window.onload = initializeFirebase;
+
+        // Initial UI update
+        updateUI();
+
+    </script>
+</body>
+</html>
