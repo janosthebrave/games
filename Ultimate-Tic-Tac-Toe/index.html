@@ -506,11 +506,8 @@
                 auth = getAuth(app);
 
                 // Sign in with custom token if available, otherwise anonymously
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
+
                     await signInAnonymously(auth);
-                }
 
                 // Listen for auth state changes to get the user ID
                 onAuthStateChanged(auth, (user) => {
