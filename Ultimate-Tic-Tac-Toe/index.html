@@ -401,10 +401,15 @@
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
+                const firebaseConfig = {
+            apiKey: "AIzaSyAPm9AOnR2ALEmd6VnPDd4AN2IXoaEczuY",
+            authDomain: "tictactoe-93d90.firebaseapp.com",
+            projectId: "tictactoe-93d90",
+            storageBucket: "tictactoe-93d90.firebasestorage.app",
+            messagingSenderId: "635184902618",
+            appId: "1:635184902618:web:8b16d2a7c7ab288cf490e3",
+            measurementId: "G-2PSRVG1FNZ"
+        };
         // Firebase App and Services
         let app;
         let db;
